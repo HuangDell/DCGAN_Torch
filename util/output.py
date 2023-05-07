@@ -14,17 +14,25 @@ def create_model_dir():
 def save_model(model):
     torch.save(model.state_dict(), config.project_name + ".pt")
     shutil.copy("../../config.py", "config.py")  # 将该模型对应的配置信息保存
-    printf.info(f"{config.project_name+config.version} save successfully.")
-
-
-def echo_epoch_end(epoch, result):
-    printf("Epoch [{}], lr: {:.5f}, train_loss: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}".
-           format(epoch, result['lr'][-1], result['train_loss'], result['test_loss'], result['test_acc']))
+    printf.info(f"{config.project_name + config.version} save successfully.")
 
 
 def draw_result(epoch, loss, acc):
-    plt.title(config.project_name+config.version)
+    plt.title(config.project_name + config.version)
     plt.plot(range(epoch), loss, label='Train loss')
     plt.plot(range(epoch), acc, label='Test acc')
     plt.legend()
     plt.savefig(config.save_name)
+
+
+def visualize(index=0, **images):
+    n_images = len(images)
+    # plt.figure(figsize=(20, 8))
+    for idx, (name, image) in enumerate(images.items()):
+        plt.subplot(1, n_images, idx + 1)
+        plt.xticks([])
+        plt.yticks([])
+        # get title from the parameter names
+        plt.title(name.replace('_', ' ').title(), fontsize=20)
+        plt.imshow(image)
+    plt.savefig(config.image_path_name + f"result{index}.jpg")

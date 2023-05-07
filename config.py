@@ -10,7 +10,6 @@ version = "v1.0"
 path_name = "out/" + project_name + version + "/"
 
 # model
-model = ResNet9
 
 # model saving
 save_name = path_name + project_name + ".pt"
@@ -31,7 +30,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # data
 DATA_PATH = './data'
-BATCH_SIZE = 400
+BATCH_SIZE = 4
 
 if not os.path.exists(path_name):
     os.makedirs(path_name)
