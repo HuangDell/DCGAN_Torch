@@ -3,6 +3,7 @@ import torch.nn as nn
 from data import load
 from tqdm import tqdm
 from util.output import *
+from model.model import *
 
 
 def _train(model, train_data, test_data):
@@ -44,7 +45,7 @@ def test():
 
 
 def train():
-    model = config.model()
+    model = ResNet9()
     loss, acc = _train(model, test_data=load.test_data, train_data=load.train_data)
     save_model(model)
     draw_result(config.epochs, loss, acc)
