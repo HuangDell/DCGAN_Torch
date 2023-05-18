@@ -1,51 +1,88 @@
 import torch.cuda
 import torch.nn as nn
+
+import config
 from data import load
 from tqdm import tqdm
 from util.output import *
 from model.model import *
 
 
-def _train(model, train_data, test_data):
+def _train(G, D, train_data, test_data):
     torch.cuda.empty_cache()
-    optimizer = config.optimizer(model.parameters(), config.lr, weight_decay=config.weight_decay)
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, config.max_lr, epochs=config.epochs,
-                                                    steps_per_epoch=len(train_data))
+    G.apply(weights_init)
+    D.apply(weights_init)
 
-    loss_list, acc_list = [], []
+    fixed_noise = torch.randn(64, config.generator_input, 1, 1, device=config.device)
+
+    optimizerG = config.optimizerG(G.parameters(), config.lr, weight_decay=config.weight_decay,
+                                   betas=(config.beta, 0.999))
+    optimizerD = config.optimizerD(D.parameters(), config.lr, weight_decay=config.weight_decay,
+                                   betas=(config.beta, 0.999))
+
+    schedulerG = torch.optim.lr_scheduler.OneCycleLR(optimizerG, config.max_lr, epochs=config.epochs,
+                                                     steps_per_epoch=len(train_data))
+
+    schedulerD = torch.optim.lr_scheduler.OneCycleLR(optimizerD, config.max_lr, epochs=config.epochs,
+                                                     steps_per_epoch=len(train_data))
+
+    G_loss_list, D_loss_list = [], []
+
     bar = tqdm(range(config.epochs))
     for _ in bar:
-        model.train()
-        losses = 0.0
         for batch in train_data:
-            loss = model.train_step(batch)
-            loss.backward()
-            losses += loss.item()
+            # 首先用全真数据 训练D 网络
+            D.zero_grad()
+            real_data = batch[0].to(config.device)
 
-            nn.utils.clip_grad_value_(model.parameters(), config.grad_clip)
+            label = torch.full((real_data.size(0),), 1, dtype=torch.float, device=config.device)
 
-            optimizer.step()
-            optimizer.zero_grad()
-            scheduler.step()
+            output = D(real_data).view(-1)
+            lossD_real = config.criterion(output, label)
+            lossD_real.backward()
+            D_x = output.mean().item()
 
-        acc = model.evaluate(test_data)
-        result = f'loss {losses / len(train_data)},acc {acc}'
-        loss_list.append(losses)
-        acc_list.append(acc)
+            # 全假数据训练D网络
+            noise = torch.randn(real_data.size(0), config.generator_input, 1, 1, device=config.device)
+            fake_data = G(noise)
+            label.fill_(fake_data)
+
+            output = D(fake_data.detach()).view(-1)
+            lossD_fake = config.criterion(output,label)
+            lossD_fake.backward()
+            D_G_z1 = output.mean().item()
+
+            lossD = lossD_fake+lossD_real
+
+            optimizerD.step()
+
+            # 下面开始训练G网络
+            G.zero_grad()
+            label.fill_(real_data)
+            output = D(fake_data).view(-1)
+            lossG = config.criterion(output,label)
+            lossG.backward()
+            D_G_z2 = output.mean().item()
+
+            optimizerG.step()
+        result = f'Loss_D: {lossD.item()}, Loss_G: {lossG.item()}, D(x):{D_x}, D(G(x)): {D_G_z1}/{D_G_z2}'
+        G_loss_list.append(lossG.item())
+        D_loss_list.append(lossD.item())
         bar.set_description(result)
         printf.info(result)
-    return loss_list, acc_list
+    return G_loss_list, D_loss_list
 
 
 def test():
     model = config.model()
     model.load()
     acc = model.evaluate(load.test_data)
-    printf.debug(f"Accuracy {acc*100}%")
+    printf.debug(f"Accuracy {acc * 100}%")
 
 
 def train():
-    model = ResNet9()
-    loss, acc = _train(model, test_data=load.test_data, train_data=load.train_data)
-    save_model(model)
-    draw_result(config.epochs, loss, acc)
+    G = Generator().to(config.device)
+    D = Discriminator().to(config.device)
+    G_loss, D_loss = _train(G, D, test_data=load.test_data, train_data=load.train_data)
+    save_model(G=G,D=D)
+    draw_result(config.epochs, G_Loss=G_loss, D_Loss=D_loss)

@@ -11,16 +11,17 @@ def create_model_dir():
     os.chdir(config.path_name)  # 将工作目录调整为模型对于的目录
 
 
-def save_model(model):
-    torch.save(model.state_dict(), config.project_name + ".pt")
+def save_model(**models):
+    for idx, (name, model) in enumerate(models.items()):
+        torch.save(model.state_dict(), config.project_name + "_" + name + ".pt")
+        printf.info(f"{config.project_name + config.version} save successfully.")
     shutil.copy("../../config.py", "config.py")  # 将该模型对应的配置信息保存
-    printf.info(f"{config.project_name + config.version} save successfully.")
 
 
-def draw_result(epoch, loss, acc):
+def draw_result(epoch, **features):
     plt.title(config.project_name + config.version)
-    plt.plot(range(epoch), loss, label='Train loss')
-    plt.plot(range(epoch), acc, label='Test acc')
+    for idx, (name, feature) in enumerate(features.items()):
+        plt.plot(range(epoch), feature, label=name)
     plt.legend()
     plt.savefig(config.save_name)
 
