@@ -15,7 +15,6 @@ def save_model(**models):
     for idx, (name, model) in enumerate(models.items()):
         torch.save(model.state_dict(), config.project_name + "_" + name + ".pt")
         printf.info(f"{config.project_name + config.version} save successfully.")
-    shutil.copy("../../config.py", "config.py")  # 将该模型对应的配置信息保存
 
 
 def draw_result(epoch, **features):

@@ -6,8 +6,9 @@ from model.model import *
 
 # log information
 project_name = "GAN"
-version = "v1.0"
+version = "v1.1"
 path_name = "out/" + project_name + version + "/"
+image_path_name = path_name+"images/"
 
 # model
 generator_features = 64
@@ -19,13 +20,14 @@ generator_input = 100
 save_name = path_name + project_name + ".pt"
 
 # model parameters
-criterion = nn.BCELoss  # 选择交叉熵作为损失函数
+criterion = nn.BCELoss()  # 选择交叉熵作为损失函数
 optimizerD = optim.Adam
 optimizerG = optim.Adam
 
 # parameters
 epochs = 50
 lr = 0.0002
+max_lr = 0.0002
 grad_clip = 0.1
 weight_decay = 1e-4
 beta = 0.5
@@ -40,4 +42,5 @@ BATCH_SIZE = 1
 
 if not os.path.exists(path_name):
     os.makedirs(path_name)
+    os.makedirs(image_path_name)
     shutil.copy("config.py", path_name + "model.config")  # 将该模型对应的配置信息保存

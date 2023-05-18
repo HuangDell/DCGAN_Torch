@@ -34,8 +34,9 @@ def _train(G, D, train_data, test_data):
             # 首先用全真数据 训练D 网络
             D.zero_grad()
             real_data = batch[0].to(config.device)
+            b_size = real_data.size(0)
 
-            label = torch.full((real_data.size(0),), 1, dtype=torch.float, device=config.device)
+            label = torch.full((b_size,),1, dtype=torch.float, device=config.device)
 
             output = D(real_data).view(-1)
             lossD_real = config.criterion(output, label)
@@ -43,9 +44,9 @@ def _train(G, D, train_data, test_data):
             D_x = output.mean().item()
 
             # 全假数据训练D网络
-            noise = torch.randn(real_data.size(0), config.generator_input, 1, 1, device=config.device)
+            noise = torch.randn(b_size, config.generator_input, 1, 1, device=config.device)
             fake_data = G(noise)
-            label.fill_(fake_data)
+            label.fill_(0)
 
             output = D(fake_data.detach()).view(-1)
             lossD_fake = config.criterion(output,label)
@@ -58,14 +59,14 @@ def _train(G, D, train_data, test_data):
 
             # 下面开始训练G网络
             G.zero_grad()
-            label.fill_(real_data)
+            label.fill_(1)
             output = D(fake_data).view(-1)
             lossG = config.criterion(output,label)
             lossG.backward()
             D_G_z2 = output.mean().item()
 
             optimizerG.step()
-        result = f'Loss_D: {lossD.item()}, Loss_G: {lossG.item()}, D(x):{D_x}, D(G(x)): {D_G_z1}/{D_G_z2}'
+        result = f'Loss_D: {lossD.item():.4f}, Loss_G: {lossG.item():.4f}, D(x):{D_x:.4f}, D(G(x)): {D_G_z1:.4f}/{D_G_z2:.4f}'
         G_loss_list.append(lossG.item())
         D_loss_list.append(lossD.item())
         bar.set_description(result)
