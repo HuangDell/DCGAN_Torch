@@ -13,7 +13,7 @@ def create_model_dir():
 
 def save_model(**models):
     for idx, (name, model) in enumerate(models.items()):
-        torch.save(model.state_dict(), config.project_name + "_" + name + ".pt")
+        torch.save(model.state_dict(), config.path_name + "_" + name + ".pt")
         printf.info(f"{config.project_name + config.version} save successfully.")
 
 
@@ -22,7 +22,7 @@ def draw_result(epoch, **features):
     for idx, (name, feature) in enumerate(features.items()):
         plt.plot(range(epoch), feature, label=name)
     plt.legend()
-    plt.savefig(config.save_name)
+    plt.savefig(config.path_name + config.project_name + ".png")
 
 
 def visualize(index=0, **images):
